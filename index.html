@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WildSense - Real-Time Multispecies Safety Map</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Top Alert Notification (Toast) -->
+    <div id="toast-notification" class="toast hidden">
+        <span id="toast-message"></span>
+    </div>
+
+    <div id="map"></div>
+
+    <!-- Language Selector -->
+    <div class="language-selector">
+        <select id="lang-select" aria-label="Select Language">
+            <option value="en">English</option>
+            <option value="ml">മലയാളം</option>
+            <option value="hi">हिंदी</option>
+            <option value="ta">தமிழ்</option>
+            <option value="kn">ಕನ್ನಡ</option>
+        </select>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="search-container">
+        <form id="search-form" class="search-form">
+            <button type="submit" class="search-btn" aria-label="Search">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+            </button>
+            <input type="text" id="search-input" placeholder="Search a place..." required autocomplete="off">
+        </form>
+        <ul id="search-suggestions" class="search-suggestions hidden"></ul>
+    </div>
+
+    <!-- Heatmap Toggle Button -->
+    <button id="heatmap-toggle-btn" class="map-action-btn top-right">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+        </svg>
+    </button>
+
+    <!-- Locate Me Button -->
+    <button id="locate-me-btn" class="map-action-btn locate-me">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="3"></circle>
+            <line x1="12" y1="2" x2="12" y2="6"></line>
+            <line x1="12" y1="18" x2="12" y2="22"></line>
+            <line x1="2" y1="12" x2="6" y2="12"></line>
+            <line x1="18" y1="12" x2="22" y2="12"></line>
+        </svg>
+    </button>
+
+    <!-- Alert Feed Toggle Button (Mobile) -->
+    <button id="feed-toggle-btn" class="feed-toggle">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+        </svg>
+        Recent Alerts
+    </button>
+
+    <!-- Alert Feed Panel -->
+    <div id="alert-feed" class="alert-feed-panel">
+        <div class="feed-header">
+            <h3>Recent Sightings</h3>
+            <button id="close-feed" class="close-btn">&times;</button>
+        </div>
+        <ul id="feed-list" class="feed-list">
+            <!-- Items will be injected by JS -->
+        </ul>
+    </div>
+
+    <button id="report-btn" class="report-button">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+        <span>Report Animal</span>
+    </button>
+
+    <!-- Reporting Modal Overlay -->
+    <div id="report-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Report Wildlife</h2>
+                <button id="close-modal" class="close-btn">&times;</button>
+            </div>
+            <form id="report-form">
+                <div class="form-group">
+                    <label for="animal-type">Animal Type</label>
+                    <select id="animal-type" required>
+                        <option value="" disabled selected>Select an animal...</option>
+                        <option value="Elephant">Elephant</option>
+                        <option value="Wild Boar">Wild Boar</option>
+                        <option value="Snake">Snake</option>
+                        <option value="Leopard">Leopard</option>
+                        <option value="Tiger">Tiger</option>
+                        <option value="Bear">Bear</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Location</label>
+                    <div class="location-controls">
+                        <input type="text" id="location-input" placeholder="Fetching location..." readonly>
+                        <button type="button" id="detect-location-btn" class="secondary-btn">Detect</button>
+                    </div>
+                    <small class="help-text">Using current GPS location by default.</small>
+                </div>
+
+                <button type="submit" class="submit-btn">Submit Report</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
+    <!-- Custom JS -->
+    <script src="app.js"></script>
+</body>
+
+</html>
